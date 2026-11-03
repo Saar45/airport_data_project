@@ -50,7 +50,10 @@ jobs:
         env:
           DATA_SOURCE: local
         run: |
-          uv run shiny run app/app.py --port 8000 > shiny.log 2>&1 &
+          # Lancé directement depuis .venv (pas via `uv run`) et arrêté en fin d'étape : un processus uv
+          # resté actif garde le cache verrouillé et bloque le nettoyage de setup-uv.
+          .venv/bin/shiny run app/app.py --port 8000 > shiny.log 2>&1 &
+          trap 'kill $! 2>/dev/null || true' EXIT
           for i in $(seq 1 60); do
             if curl -sf http://127.0.0.1:8000/ | grep -q "Trafic aérien NYC"; then echo "App OK après ${i}s"; exit 0; fi
             sleep 1
