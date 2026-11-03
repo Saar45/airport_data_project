@@ -27,7 +27,7 @@ uv run pytest -q -k mission2         # a single test group
 uv export --no-dev --no-emit-project --no-hashes --no-header -o app/requirements.txt   # after any dependency change
 ```
 
-Deployment: Posit Connect Cloud republishes `main` on every push. Its primary file is `app/app.py`, and it installs from `app/requirements.txt`, which must sit next to `app.py`. The CI fails if that file drifts from `uv.lock`. Secrets are Connect Cloud "Variables" (the same names as in `.env`). Vercel was ruled out: it cuts Shiny's WebSocket session at the function's max duration (5 min on Hobby).
+Deployment: the CI's `deploy` job (it runs only on `main`, after `check` passes) copies the git-tracked contents of `app/` to the `deploy` branch, force-pushed each time. Posit Connect Cloud publishes that branch, with primary file `app.py` and `requirements.txt` at its root. The notebooks at the repo root made Connect Cloud require `jupyter`, which is why it no longer deploys from `main`. Never edit the `deploy` branch by hand. `app/requirements.txt` must stay in sync with `uv.lock` (the CI checks it). Secrets are Connect Cloud "Variables" (the same names as in `.env`). Vercel was ruled out: it cuts Shiny's WebSocket session at the function's max duration (5 min on Hobby).
 
 Configuration lives in `.env` at the repo root (copy `.env.example`). `DATA_SOURCE=local` uses the bundled `nycflights13` CSVs, so it works offline. `DATA_SOURCE=supabase` reads the team's database. Each module exposes pure `*_figure` / `*_table(df)` functions, and `tests/test_app.py` calls them on full, filtered and empty frames. Add a test there for any new chart or table.
 
