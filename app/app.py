@@ -1,11 +1,16 @@
 """Point d'entrée de l'application. Lancer : uv run shiny run app/app.py --reload"""
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 from shiny import App, reactive, ui
 
+# Les modules de l'app (data_source, modules/...) sont importés sans préfixe : on s'assure que
+# ce dossier est dans le chemin, quel que soit le serveur qui lance l'app (shiny run, Connect Cloud).
+sys.path.insert(0, str(Path(__file__).parent))
+# En local, les secrets viennent du .env à la racine. Sur Connect Cloud, des « Variables » de l'app.
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from data_source import load_app_data  # noqa: E402

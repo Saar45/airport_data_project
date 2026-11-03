@@ -78,7 +78,55 @@ REFRESH_CACHE=true uv run shiny run app/app.py      # ou : supprimer le dossier 
 
 Le cache se reconstruit aussi tout seul quand la structure des données de l'app change (`CACHE_VERSION` dans `app/data_source.py`).
 
-## 6. Contenu de l'application
+## 6. Tests, CI et déploiement
+
+### Lancer les vérifications en local
+
+Ce sont les mêmes commandes que la CI. Elles utilisent les données locales et n'ont besoin d'aucun secret.
+
+```bash
+uv run ruff check app tests     # lint : erreurs réelles (noms non définis, imports inutilisés…)
+uv run pytest -q                # tests : données, graphiques, modèle, onglets Mission 1/2, démarrage de l'app
+uv run pytest -q -k mission2    # un seul groupe de tests
+```
+
+### Intégration continue (GitHub Actions)
+
+`.github/workflows/ci.yml` tourne à chaque push sur `main` et à chaque pull request. Il :
+1. installe les versions exactes de `uv.lock` (`uv sync --locked`) ;
+2. lance le lint (ruff) ;
+3. vérifie que `app/requirements.txt` est synchronisé avec `uv.lock` ;
+4. lance les tests (pytest) ;
+5. démarre réellement l'app avec `shiny run` et vérifie qu'elle répond.
+
+Le résultat apparaît dans l'onglet **Actions** du dépôt GitHub et sur chaque pull request.
+
+### Ajouter ou mettre à jour une dépendance
+
+Le serveur installe les dépendances listées dans `app/requirements.txt`. Ce fichier est généré à partir de `uv.lock` et doit être régénéré après chaque changement de dépendances, sinon la CI échoue :
+
+```bash
+uv add <paquet>                 # ou : uv add --dev <paquet> pour un outil de développement
+uv export --no-dev --no-emit-project --no-hashes --no-header -o app/requirements.txt
+```
+
+### Déploiement continu (Posit Connect Cloud)
+
+L'app est hébergée sur **[Posit Connect Cloud](https://connect.posit.cloud)**, l'hébergeur de Posit, l'éditeur de Shiny. Le plan gratuit accepte les dépôts GitHub publics. **Chaque push sur `main` republie l'app automatiquement.**
+
+Configuration, à faire une seule fois :
+1. Se connecter sur https://connect.posit.cloud avec son compte GitHub.
+2. **Publish → Shiny** : choisir le dépôt `Saar45/airport_data_project`, la branche `main` et le fichier principal **`app/app.py`**. `app/requirements.txt` est à côté, c'est ce que Connect Cloud attend.
+3. Dans **Advanced settings → Variables**, ajouter les variables du `.env`. Cocher **secret** pour le mot de passe :
+   `DATA_SOURCE=supabase`, `SUPABASE_HOST`, `SUPABASE_PORT`, `SUPABASE_DB`, `SUPABASE_USER`, `SUPABASE_PASSWORD`, `SUPABASE_SCHEMA`.
+4. Laisser **« Automatically publish on push »** activé, puis **Publish**.
+
+À savoir :
+- **Mise en veille :** sans visite, l'app se met en veille. Au réveil, elle relit Supabase et entraîne le modèle, ce qui prend environ 20 s. **Ouvrir l'app une minute avant une présentation.**
+- **Changement dans la base :** cliquer sur **Republish** dans Connect Cloud. Une nouvelle publication part sans cache (`app/cache/` n'est pas dans le dépôt) et relit donc Supabase.
+- **Une CI en échec ne bloque pas le déploiement.** Pour ne publier que du code testé, protéger la branche `main` sur GitHub : Settings → Branches → exiger une pull request et le passage du job « Lint, tests, dépendances ».
+
+## 7. Contenu de l'application
 
 | Onglet | Contenu |
 |---|---|
@@ -96,7 +144,7 @@ Un **problème** = retard à l'arrivée de plus de 15 min, annulation ou dérout
 
 Les **filtres de la barre latérale** (aéroport de départ, compagnies, destinations, mois) s'appliquent aux onglets d'analyse. Ils ne s'appliquent pas aux onglets Mission 1, Mission 2 et Prédiction.
 
-## 7. Structure du projet
+## 8. Structure du projet
 
 ```
 Airport_project/
@@ -106,8 +154,11 @@ Airport_project/
 ├── Mission1_Exploration.ipynb    ← notebook Mission 1
 ├── EnoncéProjetTraficAérien-…pdf ← énoncé du projet
 ├── docs/                         ← documentation détaillée de l'app
+├── tests/                        ← tests automatiques (pytest)
+├── .github/workflows/ci.yml      ← intégration continue (GitHub Actions)
 └── app/
     ├── app.py                    ← point d'entrée : mise en page, filtres, onglets
+    ├── requirements.txt          ← dépendances pour Connect Cloud (généré depuis uv.lock)
     ├── data_source.py            ← lecture Supabase / locale, cache, métadonnées de la base
     ├── data_prep.py              ← nettoyage et jointures
     ├── model.py                  ← modèle de prédiction
@@ -118,7 +169,7 @@ Airport_project/
 Le notebook de la Mission 2 (import dans Supabase) est sur Colab :
 https://colab.research.google.com/drive/1kFgVOSJJK44semax7cZEpBHEDENG4vWq?usp=sharing
 
-## 8. Documentation
+## 9. Documentation
 
 Le dossier [`docs/`](docs/README.md) explique l'app en détail, pour quelqu'un qui découvre Python :
 - l'architecture ;
@@ -128,7 +179,7 @@ Le dossier [`docs/`](docs/README.md) explique l'app en détail, pour quelqu'un q
 - la connexion Supabase ;
 - des recettes pour ajouter un graphique, un filtre ou un onglet.
 
-## 9. Dépannage
+## 10. Dépannage
 
 | Message | Solution |
 |---|---|

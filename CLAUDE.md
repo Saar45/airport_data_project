@@ -18,7 +18,18 @@ uv run shiny run app/app.py --reload      # run the app (http://127.0.0.1:8000)
 REFRESH_CACHE=true uv run shiny run app/app.py   # rebuild the data cache + model
 ```
 
-Configuration lives in `.env` at the repo root (copy `.env.example`). `DATA_SOURCE=local` uses the bundled `nycflights13` CSVs, so it works offline. `DATA_SOURCE=supabase` reads the team's database. There is no test suite. Each module exposes pure `*_figure` / `*_table(df)` functions, so you can smoke-test logic by importing them with `app/` on `sys.path` and calling them on full, filtered and empty frames.
+Checks (the same steps the CI runs in `.github/workflows/ci.yml`, all on local data with no secrets):
+
+```bash
+uv run ruff check app tests          # lint (bug-finding rules only, see [tool.ruff] in pyproject.toml)
+uv run pytest -q                     # tests in tests/, run on local nycflights13 data
+uv run pytest -q -k mission2         # a single test group
+uv export --no-dev --no-emit-project --no-hashes --no-header -o app/requirements.txt   # after any dependency change
+```
+
+Deployment: Posit Connect Cloud republishes `main` on every push. Its primary file is `app/app.py`, and it installs from `app/requirements.txt`, which must sit next to `app.py`. The CI fails if that file drifts from `uv.lock`. Secrets are Connect Cloud "Variables" (the same names as in `.env`). Vercel was ruled out: it cuts Shiny's WebSocket session at the function's max duration (5 min on Hobby).
+
+Configuration lives in `.env` at the repo root (copy `.env.example`). `DATA_SOURCE=local` uses the bundled `nycflights13` CSVs, so it works offline. `DATA_SOURCE=supabase` reads the team's database. Each module exposes pure `*_figure` / `*_table(df)` functions, and `tests/test_app.py` calls them on full, filtered and empty frames. Add a test there for any new chart or table.
 
 ## App architecture (`app/`)
 

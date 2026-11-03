@@ -39,7 +39,7 @@ def prepare_data(raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
 
     f = raw["flights"].copy()
     f["date"] = pd.to_datetime(f[["year", "month", "day"]])
-    f["wday"] = pd.Categorical.from_codes(f.date.dt.dayofweek, categories=JOURS, ordered=True)
+    f["wday"] = pd.Categorical.from_codes(f.date.dt.day_of_week, categories=JOURS, ordered=True)
     # Un vol annulé n'a pas d'heure de départ réelle ; un vol parti sans retard
     # à l'arrivée connu est considéré comme dérouté.
     f["cancelled"] = f.dep_time.isna()

@@ -1,0 +1,58 @@
+# Intégration continue : à chaque push et pull request, on vérifie que l'app est déployable.
+# Le déploiement lui-même (CD) est fait par Posit Connect Cloud, qui republie la branche main à chaque push.
+# Aucun secret n'est nécessaire : les tests utilisent les données locales nycflights13.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, tests, dépendances
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Installer Python et les dépendances (versions exactes de uv.lock)
+        run: uv sync --locked
+
+      - name: Lint (ruff)
+        run: uv run ruff check app tests
+
+      - name: app/requirements.txt est synchronisé avec uv.lock
+        run: |
+          uv export --no-dev --no-emit-project --no-hashes --no-header -o /tmp/requirements.txt --quiet
+          if ! diff -u app/requirements.txt /tmp/requirements.txt; then
+            echo "::error file=app/requirements.txt::Fichier désynchronisé de uv.lock. Lancer : uv export --no-dev --no-emit-project --no-hashes --no-header -o app/requirements.txt"
+            exit 1
+          fi
+
+      - name: Tests (pytest, données locales)
+        run: uv run pytest -q
+
+      - name: L'app démarre et répond (shiny run)
+        env:
+          DATA_SOURCE: local
+        run: |
+          uv run shiny run app/app.py --port 8000 > shiny.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8000/ | grep -q "Trafic aérien NYC"; then echo "App OK après ${i}s"; exit 0; fi
+            sleep 1
+          done
+          echo "::error::L'app n'a pas répondu en 60 s"; cat shiny.log; exit 1

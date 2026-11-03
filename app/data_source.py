@@ -45,7 +45,9 @@ def make_engine():
 
 def _decimals_to_float(df: pd.DataFrame) -> pd.DataFrame:
     """Les colonnes Postgres NUMERIC arrivent en Decimal (dtype object) : on les convertit."""
-    for col in df.columns[df.dtypes == object]:
+    for col in df.columns:
+        if not pd.api.types.is_object_dtype(df[col]):
+            continue
         first = df[col].dropna().head(1)
         if len(first) and isinstance(first.iloc[0], Decimal):
             df[col] = pd.to_numeric(df[col])
@@ -147,7 +149,11 @@ def load_app_data(source: str | None = None, refresh: bool = False) -> dict:
     data["db_meta"] = read_supabase_meta() if source == "supabase" else None
     data["cache_version"] = CACHE_VERSION
 
-    CACHE_DIR.mkdir(exist_ok=True)
-    with cache_file.open("wb") as f:
-        pickle.dump(data, f)
+    try:
+        CACHE_DIR.mkdir(exist_ok=True)
+        with cache_file.open("wb") as f:
+            pickle.dump(data, f)
+    except OSError as e:
+        # Hébergeur en lecture seule : l'app fonctionne sans cache (rechargement à chaque démarrage).
+        print(f"Cache non enregistré ({e}).")
     return data
