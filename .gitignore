@@ -1,0 +1,9 @@
+.env
+# VS Code "Local History" : contient des copies de .env (donc du mot de passe).
+.history/
+.venv/
+__pycache__/
+app/cache/
+.ipynb_checkpoints/
+.DS_Store
+rsconnect-python/

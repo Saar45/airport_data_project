@@ -1,0 +1,18 @@
+[project]
+name = "airport-project"
+version = "0.1.0"
+description = "Projet Trafic Aérien : WebApp Shiny for Python (Mission 3)"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "shiny>=1.2",
+    "shinywidgets>=0.5",
+    "plotly>=5.24",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "scikit-learn>=1.5",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0",
+    "faicons>=0.2",
+    "nycflights13>=0.0.3",
+]
