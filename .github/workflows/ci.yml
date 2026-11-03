@@ -1,6 +1,8 @@
-# Intégration continue : à chaque push et pull request, on vérifie que l'app est déployable.
-# Le déploiement lui-même (CD) est fait par Posit Connect Cloud, qui republie la branche main à chaque push.
-# Aucun secret n'est nécessaire : les tests utilisent les données locales nycflights13.
+# CI/CD.
+# - check  : à chaque push et pull request, on vérifie que l'app est déployable (aucun secret : données locales).
+# - deploy : sur main, uniquement si check passe, le contenu de app/ est publié seul sur la branche `deploy`.
+#            Posit Connect Cloud publie cette branche (app.py + requirements.txt à la racine, sans les notebooks
+#            du dépôt, qui lui faisaient réclamer jupyter).
 name: CI
 
 on:
@@ -59,3 +61,32 @@ jobs:
             sleep 1
           done
           echo "::error::L'app n'a pas répondu en 60 s"; cat shiny.log; exit 1
+
+  deploy:
+    name: Publier la branche deploy (Connect Cloud)
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write          # pousser la branche deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire la branche deploy à partir de app/ (fichiers suivis par git uniquement)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out="$(mktemp -d)"
+          git archive HEAD:app | tar -x -C "$out"
+          printf '%s\n' \
+            "Branche générée automatiquement par la CI à partir du dossier app/ de main (commit ${GITHUB_SHA})." \
+            "Ne pas la modifier à la main : chaque push sur main qui passe la CI la remplace." > "$out/DEPLOY.md"
+          cd "$out"
+          git init -q -b deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Déploiement de ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" deploy
+          echo "Branche deploy publiée : $(git ls-files | wc -l) fichiers, commit source ${GITHUB_SHA::7}"

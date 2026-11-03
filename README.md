@@ -112,11 +112,18 @@ uv export --no-dev --no-emit-project --no-hashes --no-header -o app/requirements
 
 ### Déploiement continu (Posit Connect Cloud)
 
-L'app est hébergée sur **[Posit Connect Cloud](https://connect.posit.cloud)**, l'hébergeur de Posit, l'éditeur de Shiny. Le plan gratuit accepte les dépôts GitHub publics. **Chaque push sur `main` republie l'app automatiquement.**
+L'app est hébergée sur **[Posit Connect Cloud](https://connect.posit.cloud)**, l'hébergeur de Posit, l'éditeur de Shiny. Le plan gratuit accepte les dépôts GitHub publics.
+
+**Comment ça marche :** après chaque push sur `main`, si le job `check` passe, le job **`deploy`** de la CI copie le contenu de `app/` seul sur la branche **`deploy`**. Connect Cloud publie cette branche, ce qui donne deux garanties :
+- **une CI en échec bloque le déploiement** ;
+- Connect Cloud ne voit que l'app (`app.py` et `requirements.txt` à la racine), sans les notebooks du dépôt, qui lui faisaient réclamer `jupyter`.
+
+Ne modifie jamais la branche `deploy` à la main : elle est remplacée à chaque déploiement.
 
 Configuration, à faire une seule fois :
 1. Se connecter sur https://connect.posit.cloud avec son compte GitHub.
-2. **Publish → Shiny** : choisir le dépôt `Saar45/airport_data_project`, la branche `main` et le fichier principal **`app/app.py`**. `app/requirements.txt` est à côté, c'est ce que Connect Cloud attend.
+2. **Publish → Shiny** : choisir le dépôt **`Saar45/airport_data_project`**, la branche **`deploy`** et le fichier principal **`app.py`**.
+   Publier depuis ce dépôt et non depuis un fork : un fork ne reçoit pas la branche `deploy`.
 3. Dans **Advanced settings → Variables**, ajouter les variables du `.env`. Cocher **secret** pour le mot de passe :
    `DATA_SOURCE=supabase`, `SUPABASE_HOST`, `SUPABASE_PORT`, `SUPABASE_DB`, `SUPABASE_USER`, `SUPABASE_PASSWORD`, `SUPABASE_SCHEMA`.
 4. Laisser **« Automatically publish on push »** activé, puis **Publish**.
@@ -124,7 +131,7 @@ Configuration, à faire une seule fois :
 À savoir :
 - **Mise en veille :** sans visite, l'app se met en veille. Au réveil, elle relit Supabase et entraîne le modèle, ce qui prend environ 20 s. **Ouvrir l'app une minute avant une présentation.**
 - **Changement dans la base :** cliquer sur **Republish** dans Connect Cloud. Une nouvelle publication part sans cache (`app/cache/` n'est pas dans le dépôt) et relit donc Supabase.
-- **Une CI en échec ne bloque pas le déploiement.** Pour ne publier que du code testé, protéger la branche `main` sur GitHub : Settings → Branches → exiger une pull request et le passage du job « Lint, tests, dépendances ».
+- **Republier sans changer le code :** GitHub → Actions → CI → **Run workflow** sur `main`. Ça relance les tests puis la publication de la branche `deploy`.
 
 ## 7. Contenu de l'application
 
