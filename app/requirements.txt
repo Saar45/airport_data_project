@@ -202,4 +202,3 @@ websockets==17.4
     # via shiny
 widgetsnbextension==4.0.16
     # via ipywidgets
-    jupyter
