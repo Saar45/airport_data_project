@@ -195,10 +195,12 @@ Airport_project/
 ├── .env.example                  ← modèle de configuration (copier vers .env)
 ├── pyproject.toml / uv.lock      ← dépendances Python (gérées par uv)
 ├── Mission1_Exploration.ipynb    ← notebook Mission 1
+├── Mission2_Import_Supabase.ipynb ← notebook Mission 2 (lecture des 5 fichiers, import dans Supabase)
 ├── EnoncéProjetTraficAérien-…pdf ← énoncé du projet
 ├── docs/                         ← documentation détaillée de l'app
 ├── tests/                        ← tests automatiques (pytest)
 ├── dumps/supabase_dump.sql       ← dump SQL complet de la base (rendu Mission 2)
+├── sql/                          ← requêtes SQL des Missions 1 et 2 (voir sql/README.md)
 ├── scripts/dump_supabase.py      ← regénère ce dump
 ├── .github/workflows/ci.yml      ← intégration continue (GitHub Actions)
 └── app/
@@ -211,7 +213,7 @@ Airport_project/
     └── modules/                  ← un fichier par onglet
 ```
 
-Le notebook de la Mission 2 (import dans Supabase) est sur Colab :
+Le notebook de la Mission 2 est aussi disponible sur Colab :
 https://colab.research.google.com/drive/1kFgVOSJJK44semax7cZEpBHEDENG4vWq?usp=sharing
 
 ## 10. Documentation
