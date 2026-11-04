@@ -10,7 +10,7 @@ import re
 import pandas as pd
 from shiny import module, ui
 
-from data_prep import MISSING_AIRPORTS, WEATHER_KEY
+from data_prep import MISSING_AIRPORTS, WEATHER_KEY, added_planes_mask
 from utils import MOIS, fmt_int, fmt_pct, html_table
 
 COLAB_URL = "https://colab.research.google.com/drive/1kFgVOSJJK44semax7cZEpBHEDENG4vWq?usp=sharing"
@@ -64,8 +64,10 @@ def quality_checks(app) -> list[dict]:
     ap, al, pl, w = r["airports"], r["airlines"], r["planes"], r["weather"]
     out = []
 
-    def add(cat, ctrl, status, result):
-        out.append({"cat": cat, "ctrl": ctrl, "status": status, "result": result})
+    def add(cat, ctrl, status, result, respected=None):
+        # respected : la relation est-elle respectée par les données ? Déduit du statut sauf si précisé.
+        respected = respected or {"ok": "oui", "warn": "partiellement", "ko": "non"}[status]
+        out.append({"cat": cat, "ctrl": ctrl, "status": status, "result": result, "respected": respected})
 
     # Clés étrangères
     for col, parent, label in [("carrier", al.carrier, "flights.carrier → airlines"),
@@ -87,16 +89,24 @@ def quality_checks(app) -> list[dict]:
     add("Clés étrangères", "weather.origin → airports", "ok" if miss.empty else "ko",
         "Toutes les valeurs existent." if miss.empty else f"Codes absents : {', '.join(sorted(miss.unique()))}")
 
-    miss = _missing(f.tailnum, pl.tailnum)
-    if miss.empty:
+    # Avions réellement décrits dans planes, hors lignes ajoutées en Mission 2 pour la clé étrangère.
+    added = added_planes_mask(pl)
+    miss_db = _missing(f.tailnum, pl.tailnum)                  # absents de la table telle qu'en base
+    miss_registry = _missing(f.tailnum, pl.tailnum[~added])    # absents du registre FAA (fichier fourni)
+    if miss_registry.empty:
         add("Clés étrangères", "flights.tailnum → planes", "ok", "Tous les avions existent.")
     else:
-        by_carrier = f[f.tailnum.isin(set(miss))].carrier.value_counts()
+        by_carrier = f[f.tailnum.isin(set(miss_registry))].carrier.value_counts()
         aa_mq = by_carrier.reindex(["AA", "MQ"]).fillna(0).sum() / by_carrier.sum()
-        add("Clés étrangères", "flights.tailnum → planes", "warn",
-            f"{fmt_int(miss.nunique())} avions absents de planes, soit {fmt_int(len(miss))} vols "
-            f"({fmt_pct(len(miss) / len(f))}). {fmt_pct(aa_mq, 0)} chez AA et MQ, qui déclarent des numéros "
-            "de flotte et non des immatriculations (problème annoncé par l'énoncé).")
+        scope = (f"{fmt_int(miss_registry.nunique())} avions absents du registre FAA, soit {fmt_int(len(miss_registry))} "
+                 f"vols ({fmt_pct(len(miss_registry) / len(f))}). {fmt_pct(aa_mq, 0)} chez AA et MQ, qui déclarent des "
+                 "numéros de flotte et non des immatriculations (problème annoncé par l'énoncé).")
+        if miss_db.empty:
+            add("Clés étrangères", "flights.tailnum → planes", "warn",
+                f"Clé étrangère respectée : {scope} Ils ont été ajoutés dans planes sans caractéristiques "
+                f"({fmt_int(int(added.sum()))} lignes), sans inventer de données.", respected="oui")
+        else:
+            add("Clés étrangères", "flights.tailnum → planes", "warn", scope)
 
     match = weather_match(app)
     matched = app["flights"][match]
@@ -221,9 +231,8 @@ def relations_table(app, checks) -> pd.DataFrame:
                        "flights.dest → airports.faa": "flights.dest → airports",
                        "flights.tailnum → planes.tailnum": "flights.tailnum → planes",
                        "weather.origin → airports.faa": "weather.origin → airports"}.get(label, "flights → weather")
-        status = by_label[check_label]["status"]
         rows.append({"Relation": label, "Cardinalité": card, "Déclarée en base (FK)": declared,
-                     "Respectée par les données": {"ok": "oui", "warn": "partiellement", "ko": "non"}[status]})
+                     "Respectée par les données": by_label[check_label]["respected"]})
     rows.append({"Relation": "compagnies ↔ aéroports", "Cardinalité": "N–N, via la table flights",
                  "Déclarée en base (FK)": "via les FK de flights", "Respectée par les données": "–"})
     return pd.DataFrame(rows)

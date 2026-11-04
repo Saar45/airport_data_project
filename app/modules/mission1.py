@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from shiny import module, render, ui
 from shinywidgets import output_widget, render_plotly
 
-from data_prep import MISSING_AIRPORTS
+from data_prep import MISSING_AIRPORTS, added_planes_mask
 from utils import NEUTRAL_COLOR, fmt_int, fmt_pct, html_table, style
 
 ADDED_AIRPORTS = list(MISSING_AIRPORTS.faa)
@@ -34,6 +34,11 @@ def q1_table(app) -> pd.DataFrame:
                  + (f" ({n_tz_na} aéroports, désormais NULL)" if n_tz_na else "") + "."]
     if new_tz:
         tz_detail.append(f"Apportés par les aéroports ajoutés : {', '.join(new_tz)}.")
+    n_added_planes = int(added_planes_mask(planes).sum())
+    planes_detail = (f"{fmt_int(len(planes) - n_added_planes)} dans le fichier fourni (valeur de l'énoncé) + "
+                     f"{fmt_int(n_added_planes)} ajoutés en Mission 2 sans caractéristiques. "
+                     if n_added_planes else "")
+    planes_detail += f"{fmt_int(f.tailnum.nunique())} immatriculations différentes dans flights."
 
     rows = [
         ("Aéroports (table airports)", fmt_int(ap.faa.nunique()),
@@ -45,8 +50,7 @@ def q1_table(app) -> pd.DataFrame:
          if n_dst != n_dst0 else ""),
         ("Fuseaux horaires (tzone)", fmt_int(n_tz), " ".join(tz_detail)),
         ("Compagnies", fmt_int(airlines.carrier.nunique()), ""),
-        ("Avions (table planes)", fmt_int(planes.tailnum.nunique()),
-         f"{fmt_int(f.tailnum.nunique())} immatriculations différentes dans flights"),
+        ("Avions (table planes)", fmt_int(planes.tailnum.nunique()), planes_detail),
         ("Vols annulés", fmt_int(f.cancelled.sum()),
          f"{fmt_pct(f.cancelled.mean(), 2)} des vols : heure de départ réelle (dep_time) vide"),
     ]
@@ -76,7 +80,7 @@ def planes_table(f, planes, order: str = "top", k: int = 10) -> pd.DataFrame:
     s = s.nlargest(k, "vols") if order == "top" else s.nsmallest(k, "vols")
     s = s.merge(planes[["tailnum", "manufacturer", "model"]], on="tailnum", how="left")
     return pd.DataFrame({"Immatriculation": s.tailnum, "Compagnie": s.compagnie, "Vols": s.vols.map(fmt_int),
-                         "Constructeur": s.manufacturer.fillna("absent de planes"), "Modèle": s.model})
+                         "Constructeur": s.manufacturer.fillna("inconnu (absent du registre FAA)"), "Modèle": s.model})
 
 
 def planes_single_flight(f) -> int:
