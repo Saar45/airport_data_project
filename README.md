@@ -133,7 +133,43 @@ Configuration, à faire une seule fois :
 - **Changement dans la base :** cliquer sur **Republish** dans Connect Cloud. Une nouvelle publication part sans cache (`app/cache/` n'est pas dans le dépôt) et relit donc Supabase.
 - **Republier sans changer le code :** GitHub → Actions → CI → **Run workflow** sur `main`. Ça relance les tests puis la publication de la branche `deploy`.
 
-## 7. Contenu de l'application
+## 7. Dump SQL de la base (rendu Mission 2)
+
+**`dumps/supabase_dump.sql`** est le dump complet de la base Supabase. Il contient :
+- les 5 tables et toutes leurs données ;
+- les clés primaires, UNIQUE et étrangères ;
+- les séquences ;
+- la Row Level Security et ses policies.
+
+### Recharger le dump
+
+Il faut **PostgreSQL 17 ou plus** et `psql`, idéalement en version 17.6 ou plus. Le chargement prend environ 2 s :
+
+```bash
+createdb airport
+psql -d airport -v ON_ERROR_STOP=1 -f dumps/supabase_dump.sql
+```
+
+Pour vérifier le résultat :
+
+```sql
+select count(*) from flights;                                   -- 252 704
+select count(*) from flights where dest in ('IAH', 'HOU');      -- 6 958 (Mission 1, Q4)
+```
+
+À savoir :
+- Le fichier utilise le format `COPY … FROM stdin` de `pg_dump`. Il se recharge avec **`psql`**, pas en le collant dans un éditeur SQL (Supabase SQL Editor, DBeaver…).
+- Les policies RLS visent le rôle de l'app, `shiny_reader`. Le dump crée ce rôle, sans droit de connexion, s'il n'existe pas.
+
+### Regénérer le dump après un changement dans la base
+
+```bash
+uv run python scripts/dump_supabase.py
+```
+
+Il faut le `.env` rempli et `pg_dump` en version 17 ou plus (macOS : `brew install libpq`).
+
+## 8. Contenu de l'application
 
 | Onglet | Contenu |
 |---|---|
@@ -151,7 +187,7 @@ Un **problème** = retard à l'arrivée de plus de 15 min, annulation ou dérout
 
 Les **filtres de la barre latérale** (aéroport de départ, compagnies, destinations, mois) s'appliquent aux onglets d'analyse. Ils ne s'appliquent pas aux onglets Mission 1, Mission 2 et Prédiction.
 
-## 8. Structure du projet
+## 9. Structure du projet
 
 ```
 Airport_project/
@@ -162,6 +198,8 @@ Airport_project/
 ├── EnoncéProjetTraficAérien-…pdf ← énoncé du projet
 ├── docs/                         ← documentation détaillée de l'app
 ├── tests/                        ← tests automatiques (pytest)
+├── dumps/supabase_dump.sql       ← dump SQL complet de la base (rendu Mission 2)
+├── scripts/dump_supabase.py      ← regénère ce dump
 ├── .github/workflows/ci.yml      ← intégration continue (GitHub Actions)
 └── app/
     ├── app.py                    ← point d'entrée : mise en page, filtres, onglets
@@ -176,7 +214,7 @@ Airport_project/
 Le notebook de la Mission 2 (import dans Supabase) est sur Colab :
 https://colab.research.google.com/drive/1kFgVOSJJK44semax7cZEpBHEDENG4vWq?usp=sharing
 
-## 9. Documentation
+## 10. Documentation
 
 Le dossier [`docs/`](docs/README.md) explique l'app en détail, pour quelqu'un qui découvre Python :
 - l'architecture ;
@@ -186,7 +224,7 @@ Le dossier [`docs/`](docs/README.md) explique l'app en détail, pour quelqu'un q
 - la connexion Supabase ;
 - des recettes pour ajouter un graphique, un filtre ou un onglet.
 
-## 10. Dépannage
+## 11. Dépannage
 
 | Message | Solution |
 |---|---|

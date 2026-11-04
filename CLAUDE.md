@@ -21,13 +21,15 @@ REFRESH_CACHE=true uv run shiny run app/app.py   # rebuild the data cache + mode
 Checks (the same steps the CI runs in `.github/workflows/ci.yml`, all on local data with no secrets):
 
 ```bash
-uv run ruff check app tests          # lint (bug-finding rules only, see [tool.ruff] in pyproject.toml)
+uv run ruff check app tests scripts  # lint (bug-finding rules only, see [tool.ruff] in pyproject.toml)
 uv run pytest -q                     # tests in tests/, run on local nycflights13 data
 uv run pytest -q -k mission2         # a single test group
 uv export --no-dev --no-emit-project --no-hashes --no-header -o app/requirements.txt   # after any dependency change
 ```
 
 Deployment: the CI's `deploy` job (it runs only on `main`, after `check` passes) copies the git-tracked contents of `app/` to the `deploy` branch, force-pushed each time. Posit Connect Cloud publishes that branch, with primary file `app.py` and `requirements.txt` at its root. The notebooks at the repo root made Connect Cloud require `jupyter`, which is why it no longer deploys from `main`. Never edit the `deploy` branch by hand. `app/requirements.txt` must stay in sync with `uv.lock` (the CI checks it). Secrets are Connect Cloud "Variables" (the same names as in `.env`). Vercel was ruled out: it cuts Shiny's WebSocket session at the function's max duration (5 min on Hobby).
+
+SQL dump (Mission 2 deliverable): `dumps/supabase_dump.sql` is committed on purpose, because it is handed in to the teacher. Regenerate it with `uv run python scripts/dump_supabase.py` (it needs `.env` and pg_dump 17+). The script uses `-t 'public.*'`, not `--schema=public`, so the dump has no `CREATE SCHEMA` and restores into an empty database. It also prepends the creation of the `shiny_reader` role, which the RLS policies reference. Check it restores with `psql -v ON_ERROR_STOP=1` into a fresh Postgres 17.
 
 Configuration lives in `.env` at the repo root (copy `.env.example`). `DATA_SOURCE=local` uses the bundled `nycflights13` CSVs, so it works offline. `DATA_SOURCE=supabase` reads the team's database. Each module exposes pure `*_figure` / `*_table(df)` functions, and `tests/test_app.py` calls them on full, filtered and empty frames. Add a test there for any new chart or table.
 
