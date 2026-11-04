@@ -128,6 +128,24 @@ def test_mission2_checks(app_data):
     assert (table["Déclarée en base (FK)"].iloc[:-1] == "non lu (mode local)").all()
 
 
+def test_added_planes_recognised(app_data):
+    """Comme en base : les avions absents du registre sont ajoutés dans planes avec seulement l'immatriculation.
+    Les réponses doivent toujours citer le fichier fourni, et le contrôle ne doit pas masquer le problème."""
+    planes = app_data["raw"]["planes"]
+    missing = sorted(set(app_data["flights"].tailnum.dropna()) - set(planes.tailnum))
+    with_stubs = pd.concat([planes, pd.DataFrame({"tailnum": missing})], ignore_index=True)
+    app = {**app_data, "raw": {**app_data["raw"], "planes": with_stubs}}
+
+    q1 = mission1.q1_table(app).set_index("Indicateur")
+    assert q1.loc["Avions (table planes)", "Valeur"] == fmt_int(len(with_stubs))
+    assert f"{fmt_int(len(planes))} dans le fichier fourni" in q1.loc["Avions (table planes)", "Détail"]
+
+    checks = {c["ctrl"]: c for c in mission2.quality_checks(app)}
+    tailnum = checks["flights.tailnum → planes"]
+    assert tailnum["status"] == "warn" and tailnum["respected"] == "oui"
+    assert "Clé étrangère respectée" in tailnum["result"] and fmt_int(len(missing)) in tailnum["result"]
+
+
 # ---------------------------------------------------------------- formatage
 
 def test_french_formatting():

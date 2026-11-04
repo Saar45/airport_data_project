@@ -17,6 +17,12 @@ MISSING_AIRPORTS = pd.DataFrame({
 WEATHER_KEY = ["origin", "year", "month", "day", "hour"]
 
 
+def added_planes_mask(planes: pd.DataFrame) -> pd.Series:
+    """Avions ajoutés en Mission 2 pour satisfaire la clé étrangère flights.tailnum → planes :
+    seule l'immatriculation est renseignée (absents du registre FAA, surtout chez AA et MQ)."""
+    return planes.drop(columns="tailnum").isna().all(axis=1)
+
+
 def prepare_data(raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     raw = {k: v.rename(columns=str.lower) for k, v in raw.items()}
 
