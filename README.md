@@ -200,6 +200,7 @@ Airport_project/
 ├── docs/                         ← documentation détaillée de l'app
 ├── tests/                        ← tests automatiques (pytest)
 ├── dumps/supabase_dump.sql       ← dump SQL complet de la base (rendu Mission 2)
+├── sql/                          ← requêtes SQL des Missions 1 et 2 (voir sql/README.md)
 ├── scripts/dump_supabase.py      ← regénère ce dump
 ├── .github/workflows/ci.yml      ← intégration continue (GitHub Actions)
 └── app/
