@@ -59,13 +59,18 @@ def main() -> None:
     print(subprocess.run([pg_dump, "--version"], capture_output=True, text=True).stdout.strip())
 
     OUTPUT.parent.mkdir(exist_ok=True)
+    # Identifiants transmis à pg_dump par les variables d'environnement standard de libpq,
+    # lues depuis .env : rien n'est écrit en dur ni visible dans la ligne de commande.
+    password = e.get("SUPABASE_PASSWORD") or ""
+    pg_env = os.environ.copy()
+    pg_env["PGSSLMODE"] = "require"
+    pg_env["PGPASSWORD"] = password  # ggignore : valeur lue dans .env, pas un secret écrit en dur
     result = subprocess.run(
         [pg_dump, "-h", e["SUPABASE_HOST"], "-p", e.get("SUPABASE_PORT") or "5432",
          "-U", e["SUPABASE_USER"], "-d", e.get("SUPABASE_DB") or "postgres",
          "-t", f"{e.get('SUPABASE_SCHEMA') or 'public'}.*",
          "--no-owner", "--no-privileges", "--enable-row-security"],
-        env=os.environ | {"PGPASSWORD": e["SUPABASE_PASSWORD"], "PGSSLMODE": "require"},
-        capture_output=True, text=True,
+        env=pg_env, capture_output=True, text=True,
     )
     if result.returncode != 0:
         sys.exit(f"pg_dump a échoué :\n{result.stderr}")
