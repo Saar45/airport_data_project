@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Student data project ("Projet Trafic Aérien", ADP consultant scenario). The brief is `EnoncéProjetTraficAérien-Mission1Exploration.pdf`; read it for the exact questions. `app/` holds the Mission 3 web app. `airport.ipynb` belongs to the teammates' exploration work.
+Student data project ("Projet Trafic Aérien", ADP consultant scenario). The brief is `EnoncéProjetTraficAérien-Mission1Exploration.pdf`; read it for the exact questions. `app/` holds the Mission 3 web app. The other deliverables are `Mission1_Exploration.ipynb`, `Mission2_Import_Supabase.ipynb`, `sql/` (Mission 1 and 2 queries, reconstructed and verified against the database) and `dumps/supabase_dump.sql`.
 
 `docs/` holds beginner-oriented documentation of the app (the owner is new to Python). Keep it in sync when behaviour changes. `docs/06-the-tabs.md` quotes figures computed from the local data, so re-check them if the data or definitions change.
 
