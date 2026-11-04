@@ -1,13 +1,22 @@
-# Trafic aérien NYC : WebApp (Mission 3)
+# Projet Trafic Aérien : vols au départ de New York
 
-Application web **Shiny for Python** du projet *Trafic Aérien* (Aéroports de Paris, données BTS). Elle analyse les vols partis de New York (EWR, JFK, LGA) pour aider le manager à **anticiper les retards, annulations et déroutements**.
+## 👉 Application en ligne : **https://saar45-group-four-airport-data-project.share.connect.posit.cloud/**
 
-Elle centralise aussi le travail de l'équipe :
-- **Mission 1** : réponses aux 8 questions d'exploration ;
-- **Mission 2** : base Supabase, avec son schéma, les contrôles qualité et la sécurité ;
-- **Mission 3** : tableaux de bord d'analyse et modèle de prédiction.
+Aucune installation n'est nécessaire, l'application s'ouvre dans le navigateur. Elle lit en direct la base **Supabase (PostgreSQL)** de l'équipe.
 
-Les données sont lues dans la base **Supabase (PostgreSQL)** de l'équipe.
+> Si l'application était en veille, le premier chargement prend environ 20 secondes.
+
+Application web **Shiny for Python** du projet *Trafic Aérien* (Aéroports de Paris, données BTS). Elle analyse les vols partis de New York (EWR, JFK, LGA) pour aider le manager à **anticiper les retards, annulations et déroutements**. Elle regroupe aussi le travail des trois missions dans ses onglets.
+
+### Où trouver les livrables
+
+| Mission | Dans l'application | Dans ce dépôt |
+|---|---|---|
+| **1. Se familiariser avec les données** | Onglet **Mission 1** (Q1 à Q8) | [`Mission1_Exploration.ipynb`](Mission1_Exploration.ipynb), [`sql/mission1_exploration.sql`](sql/mission1_exploration.sql) |
+| **2. Créer la base** | Onglet **Mission 2** (pipeline, schéma, contrôles qualité, sécurité) | [`Mission2_Import_Supabase.ipynb`](Mission2_Import_Supabase.ipynb), [`sql/`](sql/README.md) (requêtes de la Mission 2), [`dumps/supabase_dump.sql`](dumps/supabase_dump.sql) (dump complet de la base) |
+| **3. Créer une WebApp** | Onglets d'analyse, **Prédiction** | [`app/`](app/) (code), [`docs/`](docs/README.md) (documentation) |
+
+Les sections suivantes expliquent comment installer et lancer l'application en local.
 
 ---
 
